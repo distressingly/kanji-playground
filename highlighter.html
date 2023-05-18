@@ -39,6 +39,7 @@
 		.language_section {
 			border-top: 1px solid #eee; 
 			padding: 2em 0;
+			padding-bottom: 4em;
 		}
 
 		.small_label {
@@ -213,8 +214,21 @@
 		<h1 class="u-full-width">Kanji highlighter</h1>
 
 		<div class="language_section">
-			<h2 class="u-full-width">Japanese</h2>
+			<h2 class="u-full-width">How to use</h2>
+			<p>Paste text into the box below. The difficulty levels of any kanji included (according to the <emph>Kanji Kentei</emph>, at least) will be represented by use of a color gradient. Hover over any kanji to see its corresponding numerical grade.</p>
+			<ul>
+				<li>If the conversion option is enabled, the site will try to convert the text into a more Japanese-friendly form by substituting Japanese character forms where possible. (Click one of the samples below to try it out!)</li>
+				<li>The monochrome color palette is typically more readable.</li>
+			</ul>
+			<div class="u-full-width">
+				<button class="three columns" id="sample-jp">Japanese</button>
+				<button class="three columns" id="sample-pre-war">Prewar JP</button>
+				<button class="three columns" id="sample-zh">Chinese</button>
+				<button class="three columns" id="sample-ko">Korean</button>
+			</div>
+		</div>
 
+		<div class="language_section">
 			<label for="kanji_input">Kanji input</label>
 			<textarea id="kanji_input" class="u-full-width" rows="4"></textarea>
 
@@ -7034,6 +7048,26 @@
 		});
 
 		$("#monochrome").change(function() {
+			kanji_parse($('#kanji_input').val());
+		});
+
+		$("#sample-pre-war").on('click', () => {
+			$('#kanji_input').val("日本國民は、正當に選󠄁擧された國會における代表者を通󠄁じて行動し、われらとわれらの子孫のために、諸國民との協和による成󠄁果と、わが國全󠄁土にわたつて自由のもたらす惠澤を確保し、政府の行爲によつて再び戰爭の慘禍が起ることのないやうにすることを決意し、ここに主權が國民に存することを宣言し、この憲󠄁法を確定する。そもそも國政は、國民の嚴肅な信託によるものであつて、その權威は國民に由來し、その權力は國民の代表者がこれを行使󠄁し、その福利は國民がこれを享受する。これは人類普遍󠄁の原理であり、この憲󠄁法は、かかる原理に基くものである。われらは、これに反する一切の憲󠄁法、法令及び詔勅を排除する。");
+			kanji_parse($('#kanji_input').val());
+		});
+
+		$("#sample-zh").on('click', () => {
+			$('#kanji_input').val("汽車在望不到邊際的高原上奔馳，撲入你的視野的，是黃綠錯綜的一條大氈子。黃的是土，未開墾的荒地 ，幾十萬年前由偉大的自然力堆積成功的黃土高原的外殼；綠的呢，是人類勞力戰勝自然的成果，是麥田。和風吹送，翻起了一輪一輪的綠波——這時你會真心佩服昔人所造的兩個字“麥浪”，若不是妙手偶得，便確是經過錘鍊的語言的精華。黃與綠主宰着，無邊無垠，坦蕩如砥，這時如果不是宛若並肩的遠山的連峯提醒了你（這些山峯憑你的肉眼來判斷，就知道是在你腳底下的），你會忘記了汽車是在高原上行駛。這時你湧起來的感想也許是“雄壯”，也許是“偉大”，諸如此類的形容詞；然而同時你的眼睛也許覺得有點倦怠，你對當前的“雄壯”或“偉大”閉了眼，而另一種的味兒在你心頭潛滋暗長了——“單調”。可不是？單調，有一點兒吧？");
+			kanji_parse($('#kanji_input').val());
+		});
+
+		$("#sample-jp").on('click', () => {
+			$('#kanji_input').val("日本語は、日本国内や、かつての日本領だった国、そして国外移民や移住者を含む日本人同士の間で使用されている言語。日本は法令によって公用語を規定していないが、法令その他の公用文は全て日本語で記述され、各種法令において日本語を用いることが規定され、学校教育においては「国語」の教科として学習を行うなど、事実上日本国内において唯一の公用語となっている。");
+			kanji_parse($('#kanji_input').val());
+		});
+
+		$("#sample-ko").on('click', () => {
+			$('#kanji_input').val("吾等은 玆에 我 朝鮮의 獨立國임과 朝鮮人의 自主民임을 宣言하노라 此로써 世界萬邦에 告하야 人類平等의 大義를 克明하며 此로써 子孫萬代에 誥하야 民族自存의 正權을 永有케 하노라. 半萬年 歷史의 權威를 仗하야 此를 宣言함이며 二千萬 民衆의 誠忠을 合하야 此를 佈明함이며 民族의 恒久如一한 自由發展을 爲하야 此를 主張함이며 人類的良心의 發露에 基因한 世界改造의 大機運에 順應幷進하기 爲하야 此를 提起함이니 是ㅣ 天의 明命이며 時代의 大勢ㅣ며 全人類 共存同生權의 正當한 發動이라 天下何物이던지 此를 沮止抑制치 못 할지니라. 舊時代의 遺物인 侵略主義 强權主義의 犧牲을 作하야 有史以來 累千年에 처음으로 異民族 箝制의 痛苦를 甞한 지 今에 十年을 過한지라 我 生存權의 剝喪됨이 무릇 幾何ㅣ며 心靈上 發展의 障礙됨이 무릇 幾何ㅣ며 民族的 尊榮의 毁損됨이 무릇 幾何ㅣ며 新銳와 獨創으로써 世界文化의 大潮流에 寄與補裨할 機緣을 遺失함이 무릇 幾何ㅣ뇨.");
 			kanji_parse($('#kanji_input').val());
 		});
 

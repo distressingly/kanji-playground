@@ -3,9 +3,10 @@
 <head>
 	<title>Kanji quiz</title>
 	<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<link rel="preconnect" href="https://fonts.googleapis.com">
 	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-	<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400&family=Raleway:wght@300;400;600&display=swap" rel="stylesheet">
+	<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;600&family=Raleway:wght@300;400;600&display=swap" rel="stylesheet">
 	<link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/gh/dhg/Skeleton@2.0.4/css/skeleton.css">
 	<style type="text/css">
 		label {
@@ -42,6 +43,10 @@
 			line-height: 2;
 			white-space: nowrap;
 			overflow: scroll hidden;
+		}
+
+		.container {
+			padding: 0;
 		}
 
 		.paired {
@@ -1279,13 +1284,22 @@
 
 	<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.4/jquery.min.js"></script>
 	<script type="text/javascript">
-		let thing;
-		let orig;
-		let weights;
-		let raw_text;
-		let quest_num = 0;
-		let stats = {};
-		let flag_incorrect = false;
+		// StackOverflow
+		function supportsRegexLookAheadLookBehind() {
+			try {
+				return (
+					"hibyehihi"
+        				.replace(new RegExp("(?<=hi)hi", "g"), "hello")
+        				.replace(new RegExp("hi(?!bye)", "g"), "hey") === "hibyeheyhello"
+    			);
+  			} catch (error) {
+    			return false;
+			}
+		}
+
+		if (supportsRegexLookAheadLookBehind() == false) {
+			alert("Your browser does not support this applet. If you are on iOS/Safari, make sure your device is updated to ≥16.4.");
+		}
 
 		const char_level = {
 			"々": 0,
@@ -7161,6 +7175,15 @@
 			"鸞": 12,
 			"麤": 12,
 		}
+	</script>
+	<script type="text/javascript">
+		let thing;
+		let orig;
+		let weights;
+		let raw_text;
+		let quest_num = 0;
+		let stats = {};
+		let flag_incorrect = false;
 
 		$('#submit').on('click', function() {
 			weights = [];
@@ -7471,7 +7494,6 @@
 				}
 			}
 		}
-
 	</script>
 </body>
 </html>

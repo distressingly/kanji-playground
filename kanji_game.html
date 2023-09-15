@@ -6213,7 +6213,7 @@
 		$('#import').on('click', function() {
 			try {
 				const sentences_url = "https://distressingly.github.io/kanji-playground/list.txt";
-				const response = await fetch(url);
+				const response = await fetch(sentences_url);
 				const static_sentences = await response.text();
 				$('#kanji_input').val(static_sentences);
 			} catch (error) {

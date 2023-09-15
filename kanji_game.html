@@ -45,6 +45,11 @@
 			overflow: scroll hidden;
 		}
 
+		#kanji_input {
+			overflow: hidden;
+			height: 10em;
+		}
+
 		.container {
 			padding: 0;
 		}
@@ -257,7 +262,7 @@
 			<h2 class="u-full-width">Japanese</h2>
 
 			<label for="kanji_input">Kanji input</label>
-			<textarea id="kanji_input" class="u-full-width" rows="4"></textarea>
+			<div id="kanji_input" class="u-full-width"></div>
 
 			<label for="level_select">Select level</label>
 			<select id="level_select" class="u-full-width">
@@ -294,6 +299,7 @@
 	</div>
 
 	<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.4/jquery.min.js"></script>
+	<script src="https://unpkg.com/monaco-editor@latest/min/vs/loader.js"></script>
 	<script type="text/javascript">
 		// StackOverflow
 		function supportsRegexLookAheadLookBehind() {
@@ -311,6 +317,24 @@
 		if (supportsRegexLookAheadLookBehind() == false) {
 			alert("Your browser does not support this applet. If you are on iOS/Safari, make sure your device is updated to ≥16.4.");
 		}
+
+		let editor;
+		require.config({ paths: { 'vs': 'https://unpkg.com/monaco-editor@latest/min/vs' }});
+		window.MonacoEnvironment = { getWorkerUrl: () => proxy };
+
+		let proxy = URL.createObjectURL(new Blob([`
+			self.MonacoEnvironment = {
+				baseUrl: 'https://unpkg.com/monaco-editor@latest/min/'
+			};
+			importScripts('https://unpkg.com/monaco-editor@latest/min/vs/base/worker/workerMain.js');
+		`], { type: 'text/javascript' }));
+
+		require(["vs/editor/editor.main"], function () {
+			editor = monaco.editor.create(document.getElementById('kanji_input'), {
+				value: '',
+				language: 'plaintext',
+			});
+		});
 
 		const char_level = {
 			"々": 0,
@@ -6203,7 +6227,7 @@
 				orig = kanji_parse();
 			} catch (error) {
 				console.error(error);
-				alert("Error found while attempting to import sentences. Are there any unclosed brackets?")
+				alert("Error found while attempting to import sentences.")
 			}
 
 			init_weights();
@@ -6213,9 +6237,12 @@
 		$('#import').on('click', function() {
 			try {
 				const sentences_url = "https://distressingly.github.io/kanji-playground/list.txt";
-				const response = await fetch(sentences_url);
-				const static_sentences = await response.text();
-				$('#kanji_input').val(static_sentences);
+
+				fetch(sentences_url)
+					.then(response => response.text())
+					.then(new_text => {
+						editor.setValue(new_text);
+					});
 			} catch (error) {
 				console.error(error);
 				alert("Unable to load sentence file.")
@@ -6299,39 +6326,51 @@
 		}
 
 		function kanji_parse() {
-			var lines = $('#kanji_input').val().split('\n');
+			var lines = editor.getValue().split('\n');
 			var sentences = [];
 
 			raw_text = lines;
 
 			for (var i = 0; i < lines.length; i++) {
-				let placeholder = [];
-				let sentence = lines[i].replaceAll(/\](?![\s\-])/gu, ']-')
-				sentence = sentence.replaceAll('.', '');
-				sentence = sentence.replaceAll('-', '- ');
-				sentence = sentence.replaceAll(/[\p{Cf}]/gu, '');
+				try {
+					let placeholder = [];
+					let sentence = lines[i].replaceAll(/\](?![\s\-])/gu, ']-')
+					sentence = sentence.replaceAll('.', '');
+					sentence = sentence.replaceAll('-', '- ');
+					sentence = sentence.replaceAll(/[\p{Cf}]/gu, '');
 
-				let split_sent = sentence.split(' ');
-				for (var j = 0; j < split_sent.length; j++) {
-					let pot_word = split_sent[j];
-					if (pot_word.includes("[")) {
-						// console.log(pot_word);
-						let w_kanji = pot_word.match(/.+(?=\[)/gu)[0]; 
-						let w_kana = pot_word.match(/(?<=\[).+?(?=\])/gu)[0];
+					let split_sent = sentence.split(' ');
+					for (var j = 0; j < split_sent.length; j++) {
+						let pot_word = split_sent[j];
+						if (pot_word.includes("[")) {
+							// console.log(pot_word);
+							let w_kanji = pot_word.match(/.+(?=\[)/gu)[0]; 
+							let w_kana = pot_word.match(/(?<=\[).+?(?=\])/gu)[0];
 
-						if (pot_word.slice(-1) == '-') {
-							w_kanji = w_kanji + '-';
-							w_kana = w_kana + '-';
+							if (pot_word.slice(-1) == '-') {
+								w_kanji = w_kanji + '-';
+								w_kana = w_kana + '-';
+							}
+
+							if (/\p{Script=Han}/gu.test(w_kana)) {
+								throw new Error('Mismatched brackets');
+							}
+
+							let word_array = [w_kanji, w_kana, k_level(w_kanji)];
+							placeholder.push(word_array);
+						} else {
+							placeholder.push([pot_word]);
 						}
-
-						let word_array = [w_kanji, w_kana, k_level(w_kanji)];
-						placeholder.push(word_array);
-					} else {
-						placeholder.push([pot_word]);
 					}
-				}
 
-				sentences.push(placeholder);
+					sentences.push(placeholder);
+				} catch (error) {
+					console.error(error);
+					alert("Error found on line " + (i+1) + '.');
+					editor.revealLine(i+1);
+					break;
+				}
+				
 			}
 
 			console.log(sentences);

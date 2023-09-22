@@ -6213,6 +6213,8 @@
 		}
 	</script>
 	<script type="text/javascript">
+		const match_chars = /[ヶ\p{Script=Han}]/gu;
+
 		let thing;
 		let orig;
 		let weights;
@@ -6315,7 +6317,6 @@
 		}
 
 		function k_level(chars) {
-			const match_chars = /\p{Script=Han}/gu;
 			let found = chars.match(match_chars);
 			let curr_max = 0;
 
@@ -6408,6 +6409,7 @@
 							to_render += current[0];
 						} else {
 							in_word_flag = true;
+							// console.log(kanji_pairs);
 							kanji_pairs.push([current[0], current[1]]);
 							to_render += '　<span id=' + String(kanji_pairs.length - 1) + '>' + current[0];
 						}
@@ -6427,13 +6429,20 @@
 							to_render += '　' + current[1];
 						}
 					}
-				} else if (Array.from(current[0])[0] == '々') {
+				} else if (Array.from(current[0])[0] == '々' || Array.from(current[0])[0] == 'ヶ') {
 					if (in_word_flag == true) {
 						kanji_pairs[kanji_pairs.length - 1][0] += current[0];
 						kanji_pairs[kanji_pairs.length - 1][1] += current[1];
 						to_render += current[0];
 					} else {
 						to_render = to_render + '　' + current[1];
+					}
+
+					if (current[0].slice(-1) == '-') {
+						in_word_flag == true;
+					} else {
+						in_word_flag = false;
+						to_render += '</span>';
 					}
 				} else {
 					if (in_word_flag == true) {

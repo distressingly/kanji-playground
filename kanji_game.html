@@ -92,6 +92,14 @@
 			font-size: 1em;
 		}
 
+		.textbox {
+			margin-top: 0.5em;
+		}
+
+		#kanji_output {
+			margin-top: -0.5em;
+		}
+
 		[class = '1'] {
 			display: inline-block;
 			padding: .25em 0;
@@ -6214,6 +6222,7 @@
 	</script>
 	<script type="text/javascript">
 		const match_chars = /[ヶ\p{Script=Han}]/gu;
+		const cartesian = ([...a]) => a.reduce((a, b) => a.flatMap(d => b.map(e => [d, e].flat())));
 
 		let thing;
 		let orig;
@@ -6297,10 +6306,22 @@
 		}
 
 		function handle_answer(value) {
-			correct_answer = thing[quest_num][1].replace(/[\-\p{Cf}]/gu, "");
+			let correct_answer;
+			let separated_answer;
+			let this_question = thing[quest_num];
+			let this_answer = cartesian(this_question[1]);
 
-			if (value == correct_answer) {
-				success_furi(thing[quest_num], quest_num);
+			try {
+				correct_answer = this_answer.map((x) => x.join('').replaceAll(/[\p{Cf}]/gu, '').replaceAll(/[-:\.\(\)]/gu, ''));
+				separated_answer = this_answer.map((x) => x.join(''));
+			} catch {
+				correct_answer = this_answer.map((x) => x.replaceAll(/[\p{Cf}]/gu, '').replaceAll(/[-:\.\(\)]/gu, ''));
+				separated_answer = this_answer;
+			}
+			
+
+			if (correct_answer.includes(value)) {
+				success_furi([this_question[0], separated_answer[correct_answer.indexOf(value)]], quest_num);
 				$('#search').val('');
 				quest_num++;
 
@@ -6311,7 +6332,7 @@
 				}
 			} else {
 				flag_incorrect = true;
-				$('#expected-answer').text(correct_answer);
+				$('#expected-answer').text(correct_answer.join(' / '));
 				// console.log(correct_answer);
 			}
 		}
@@ -6339,9 +6360,10 @@
 				try {
 					let placeholder = [];
 					let sentence = lines[i].replaceAll(/\](?![\s\-])/gu, ']-')
-					sentence = sentence.replaceAll('.', '');
+					// sentence = sentence.replaceAll('.', '');
 					sentence = sentence.replaceAll('-', '- ');
 					sentence = sentence.replaceAll(/[\p{Cf}]/gu, '');
+					sentence = sentence.replaceAll(/\|/gu, '-|')
 
 					let split_sent = sentence.split(' ');
 					for (var j = 0; j < split_sent.length; j++) {
@@ -6396,8 +6418,10 @@
 			}
 
 			for (var i = 0; i < sentence.length; i++) {
-				let current = sentence[i];
+				let current = structuredClone(sentence[i]);
 				if (current[2] > 0) {
+					current[1] = (current[1]).split('|');
+
 					if (current[2] <= set_level) { // is kanji
 						if (current[2] == set_level) {
 							appropriate_level = true;
@@ -6405,12 +6429,12 @@
 
 						if (in_word_flag == true) { // open promise
 							kanji_pairs[kanji_pairs.length - 1][0] += current[0];
-							kanji_pairs[kanji_pairs.length - 1][1] += current[1];
+							kanji_pairs[kanji_pairs.length - 1][1].push(current[1]);
 							to_render += current[0];
 						} else {
 							in_word_flag = true;
 							// console.log(kanji_pairs);
-							kanji_pairs.push([current[0], current[1]]);
+							kanji_pairs.push([current[0], [current[1]]]);
 							to_render += '　<span id=' + String(kanji_pairs.length - 1) + '>' + current[0];
 						}
 
@@ -6424,15 +6448,15 @@
 						space_flag = true;
 						if (in_word_flag == true) {
 							in_word_flag = false;
-							to_render += '</span>-　' + current[1];
+							to_render += '</span>-　' + current[1][0];
 						} else {
-							to_render += '　' + current[1];
+							to_render += '　' + current[1][0];
 						}
 					}
 				} else if (Array.from(current[0])[0] == '々' || Array.from(current[0])[0] == 'ヶ') {
 					if (in_word_flag == true) {
 						kanji_pairs[kanji_pairs.length - 1][0] += current[0];
-						kanji_pairs[kanji_pairs.length - 1][1] += current[1];
+						kanji_pairs[kanji_pairs.length - 1][1].push([current[1]]);
 						to_render += current[0];
 					} else {
 						to_render = to_render + '　' + current[1];
@@ -6460,6 +6484,9 @@
 
 			to_render = to_render.replaceAll('-　', '');
 			to_render = to_render.replaceAll('-', '');
+			to_render = to_render.replaceAll('.', '');
+			to_render = to_render.replaceAll('(', '');
+			to_render = to_render.replaceAll(')', '');
 
 			if (space_flag == false) {
 				to_render = to_render.replaceAll('　', '');
@@ -6500,6 +6527,116 @@
 			var inc_kana = pair[1].split('-');
 
 			// console.log(inc_kanji);
+			// console.log(inc_kana);
+
+			function update_stats(kanji, kana) {
+				// console.log('arrived:', kanji, kana);
+
+				let lev = k_level(kanji);
+				stats[lev] ??= {};
+				pseudo_dic[lev] ??= {};
+
+				stats[lev][kanji] ??= {};
+				pseudo_dic[lev][kanji] ??= {};
+
+				stats[lev][kanji][kana] ??= [0, 0];
+				pseudo_dic[lev][kanji][kana] ??= [0, 0];
+
+				if (flag_incorrect == true) {
+					stats[lev][kanji][kana][1]++;
+					pseudo_dic[lev][kanji][kana][1]++;
+				} else {
+					stats[lev][kanji][kana][0]++;
+					pseudo_dic[lev][kanji][kana][0]++;
+				}
+
+				// console.log(stats);
+			}
+
+			function split_ruby(kanji, kana) {
+				let periods = (kana.match(/\./gu) || []).length; 
+				let colons = (kana.match(/:/gu) || []).length;
+
+				// console.log(kanji, kana);
+
+				if (kanji == '' || kana == '') {
+					return null;
+				}
+
+				if (colons == 0 && periods == 0) {
+					let phrase = `<span class="paired"><span class="furigana">${kana}</span><span style="display: block">${kanji}</span></span>`;
+					return [phrase, [kanji, kana]];
+
+				} else if (colons + periods + 1 == kanji.length) {
+					if (colons == 0) {
+						let compound_kanji = kanji.split('');
+						let compound_kana = kana.split('.');
+						let results = compound_kanji.map((x, i) => {return [x, compound_kana[i].replaceAll(/\([^)(]*\)/g, '')]});
+
+						kana = kana.replaceAll(/[\p{Cf}]/gu, '');
+						kana = kana.replaceAll(/[:\-\.\(\)]/gu, '');
+
+						let phrase = `<span class="paired"><span class="furigana">${kana}</span><span style="display: block">${kanji}</span></span>`;
+						// console.log(results);
+						return [phrase, results];
+
+					} else if (periods == 0) {
+						let compound_kanji = kanji.split('');
+						let compound_kana = kana.split(':');
+						let phrase = '';
+						let results = [];
+
+						for (var i = 0; i < compound_kanji.length; i++) {
+							phrase += split_ruby(compound_kanji[i], compound_kana[i])[0];
+							results.push([compound_kanji[i], compound_kana[i]]);
+						}
+
+						return [phrase, results];
+
+					} else {
+						let compound_kanji = kanji.split('');
+						let compound_kana = kana.split(':');
+
+						let results = [];
+						let returned_results = [];
+						let phrase = '';
+						let last_split = 0;
+						let times_split = 0;
+
+						for (var i = 0; i <= kana.match(/[:\.]/gu).length; i++) {
+							if (i == kana.match(/[:\.]/gu).length) {
+								if (kana.split(':')[times_split] == '') {
+									results[results.length - 1][0] += kanji.substring(last_split);
+								} else {
+									results.push([kanji.substring(last_split), kana.split(':')[times_split]]);
+								}
+							} else if (kana.match(/[:\.]/gu)[i] == ':') {
+								if (kana.split(':')[times_split] == '') {
+									results[results.length - 1][0] += kanji.substring(last_split, i + 1);
+								} else {
+									results.push([kanji.substring(last_split, i + 1), kana.split(':')[times_split]]);
+								}
+
+								times_split++;
+								last_split = i + 1;
+							}
+						}
+
+						for (var i = 0; i < results.length; i++) {
+							phrase += split_ruby(results[i][0], results[i][1])[0];
+							if (results[i][0].length == 1) {
+								returned_results.push([results[i][0], results[i][1]]);
+							}
+						}
+
+						// console.log('final phrase:', [phrase, returned_results]);
+						return [phrase, returned_results];
+					}
+				} else {
+					console.log(kanji, kana);
+					throw new Error('Incorrect division of furigana');
+				}
+			}
 
 			for (var i = 0; i < inc_kanji.length; i++) {
 				if (inc_kanji[i] == '') {
@@ -6507,27 +6644,22 @@
 				}
 
 				if (inc_kanji[i].length == 1) {
-					let lev = k_level(inc_kanji[i]);
-					stats[lev] ??= {};
-					pseudo_dic[lev] ??= {};
-
-					stats[lev][inc_kanji[i]] ??= {};
-					pseudo_dic[lev][inc_kanji[i]] ??= {};
-
-					stats[lev][inc_kanji[i]][inc_kana[i]] ??= [0, 0];
-					pseudo_dic[lev][inc_kanji[i]][inc_kana[i]] ??= [0, 0];
-
-					if (flag_incorrect == true) {
-						stats[lev][inc_kanji[i]][inc_kana[i]][1]++;
-						pseudo_dic[lev][inc_kanji[i]][inc_kana[i]][1]++;
-					} else {
-						stats[lev][inc_kanji[i]][inc_kana[i]][0]++;
-						pseudo_dic[lev][inc_kanji[i]][inc_kana[i]][0]++;
-					}
+					update_stats(inc_kanji[i], inc_kana[i])
 					
+				} else if (inc_kana[i].indexOf('.') != -1 || inc_kana[i].indexOf(':') != -1) {
+					let compound_kanji = split_ruby(inc_kanji[i], inc_kana[i])[1];
+					// console.log('compound kanji:', compound_kanji);
+					
+					for (var j = 0; j < compound_kanji.length; j++) {
+						// console.log(inc_kanji);
+						update_stats(compound_kanji[j][0], compound_kanji[j][1]);
+					}
 				}
 
-				render_string += `<span class="paired"><span class="furigana">${inc_kana[i]}</span><span style="display: block">${inc_kanji[i]}</span></span>`;
+				// inc_kana[i] = inc_kana[i].replace(/[\-\p{Cf}\.]/gu, "");
+
+				// console.log(inc_kanji[i], inc_kana[i]);
+				render_string += split_ruby(inc_kanji[i], inc_kana[i])[0];
 			}
 
 			if (flag_incorrect == true) {

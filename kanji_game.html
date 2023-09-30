@@ -45,6 +45,10 @@
 			overflow: scroll hidden;
 		}
 
+		input:invalid {
+			border-color: #c00000;
+		}
+
 		#kanji_input {
 			overflow: hidden;
 			height: 10em;
@@ -275,7 +279,7 @@
 
 			<label for="level_select">Select level</label>
 			<select id="level_select" class="u-full-width">
-				<option>1</option>
+				<option selected>1</option>
 				<option>2</option>
 				<option>3</option>
 				<option>4</option>
@@ -288,7 +292,10 @@
 				<option>11</option>
 				<option>12</option>
 				<option value="13">all</option>
+				<option value="0">custom</option>
 			</textarea>
+
+			<input hidden class="u-full-width" type="text" id="custom_list" lang="ja" pattern="[\p{Script=Han}]+" minlength="1" required>
 
 			<input class="button-primary" id="submit" type="submit" value="Go!">
 			<input class="button-primary" id="import" type="submit" value="Import">
@@ -6228,13 +6235,34 @@
 		let orig;
 		let weights;
 		let raw_text;
+		let custom_level;
 		let quest_num = 0;
 		let stats = {};
 		let flag_incorrect = false;
 		let stored_sentence = 0;
 
+		$('select').on('change', function() {
+			if (this.value == 0) {
+				if ($('#custom_list').is(':hidden')) {
+					$('#custom_list').slideDown();
+				}
+			} else {
+				if ($('#custom_list').is(':hidden') == false) {
+					$('#custom_list').slideUp();
+				}
+			}
+		});
+
 		$('#submit').on('click', function() {
 			weights = [];
+
+			if (Number($('select').val()) == 0 && $('#custom_list')[0].checkValidity() == false) {
+				if ($('#custom_list')[0].patternMismatch) {
+					alert("Custom kanji must only include characters");
+				} else if ($('#custom_list')[0].valueMissing) {
+					alert("Custom kanji must include at least one character");
+				}
+			}
 
 			try {
 				orig = kanji_parse();
@@ -6297,12 +6325,18 @@
 			stored_sentence = 0;
 			let x = weighted_random();
 
-			while (render_sentence(x) == null) {
-				x = weighted_random();
-			}
+			try {
+				while (render_sentence(x) == null) {
+					x = weighted_random();
+				}
 
-			thing = render_sentence(x);
-			highlight_n(0);
+				thing = render_sentence(x);
+				highlight_n(0);
+				
+			} catch (error) {
+				console.error(error);
+				alert("Sentences exhausted!");
+			}
 		}
 
 		function handle_answer(value) {
@@ -6353,6 +6387,17 @@
 		function kanji_parse() {
 			var lines = editor.getValue().split('\n');
 			var sentences = [];
+
+			if (Number($('#level_select').val()) == 0) {
+				let custom_kanji = $('#custom_list').val().split('');
+				custom_level = Math.max(...custom_kanji.map((kanji) => k_level(kanji)));
+				console.log(custom_level);
+
+				lines = lines.filter((line) => {
+					var custom_pattern = new RegExp('[' + $('#custom_list').val() + ']');
+					return custom_pattern.test(line);
+				});
+			}
 
 			raw_text = lines;
 
@@ -6408,6 +6453,7 @@
 			let set_level = Number($('#level_select').val());
 			let space_flag = false;
 			let appropriate_level = false;
+			let at_least_one = false;
 
 			let kanji_pairs = [];
 			let kanji_count = 0;
@@ -6415,6 +6461,8 @@
 
 			if (set_level == 13) {
 				appropriate_level = true;
+			} else if (set_level == 0) {
+				set_level = custom_level;
 			}
 
 			for (var i = 0; i < sentence.length; i++) {
@@ -6423,6 +6471,8 @@
 					current[1] = (current[1]).split('|');
 
 					if (current[2] <= set_level) { // is kanji
+						at_least_one = true;
+
 						if (current[2] == set_level) {
 							appropriate_level = true;
 						}
@@ -6478,9 +6528,14 @@
 				}
 			}
 
-			if (appropriate_level == false) {
+			if ($('#level_select').val() > 0) {
+				if (appropriate_level == false) {
+					return null;
+				}
+			} else if (at_least_one == false) {
 				return null;
 			}
+			
 
 			to_render = to_render.replaceAll('-　', '');
 			to_render = to_render.replaceAll('-', '');

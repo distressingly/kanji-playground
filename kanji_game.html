@@ -6467,6 +6467,7 @@
 
 			for (var i = 0; i < sentence.length; i++) {
 				let current = structuredClone(sentence[i]);
+				// console.log(current);
 				if (current[2] > 0) {
 					current[1] = (current[1]).split('|');
 
@@ -6542,6 +6543,7 @@
 			to_render = to_render.replaceAll('.', '');
 			to_render = to_render.replaceAll('(', '');
 			to_render = to_render.replaceAll(')', '');
+			to_render = to_render.replaceAll(':', '');
 
 			if (space_flag == false) {
 				to_render = to_render.replaceAll('　', '');

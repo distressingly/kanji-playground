@@ -299,10 +299,10 @@
 
 			<input class="button-primary" id="submit" type="submit" value="Go!">
 			<input class="button-primary" id="import" type="submit" value="Import">
-			<!--
-			<input class="button-primary" type="submit" value="Save">
-			<input class="button-primary" type="submit" value="Load">
-			-->
+			
+			<input class="button-primary" id="save" type="submit" value="Save">
+			<input class="button-primary" id="load" type="submit" value="Load">
+			<input class="button-primary" id="stats" type="submit" value="Stats">
 			<br />
 			<label for="kanji_output">Output</label>
 			<h2 id="kanji_output" class="u-full-width"></h2>
@@ -6287,6 +6287,36 @@
 			} catch (error) {
 				console.error(error);
 				alert("Unable to load sentence file.")
+			}
+		});
+
+		$('#save').on('click', function() {
+			try {
+				localStorage.setItem('progress', JSON.stringify(stats));
+				alert('Progress saved!')
+			} catch (error) {
+				console.error(error);
+				alert("Unable to save progress.")
+			}
+		});
+
+		$('#load').on('click', function() {
+			try {
+				stats = JSON.parse(localStorage.getItem('progress'));
+				alert('Progress loaded!')
+			} catch (error) {
+				console.error(error);
+				alert("Unable to load progress.")
+			}
+		});
+
+		$('#stats').on('click', function() {
+			try {
+				localStorage.setItem('progress', JSON.stringify(stats));
+				window.location.replace('stats.html');
+			} catch (error) {
+				console.error(error);
+				alert("Unable to save progress.")
 			}
 		});
 

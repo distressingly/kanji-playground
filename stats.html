@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>Kanji quiz | Stats</title>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1">
+		<link rel="preconnect" href="https://fonts.googleapis.com">
+		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+		<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;600&family=Raleway:wght@300;400;600&display=swap" rel="stylesheet">
+		<link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/gh/dhg/Skeleton@2.0.4/css/skeleton.css">
+	</head>
+	<body>
+		<div class="root"></div>
+		<script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@pgrabovets/json-view@2.7.3/dist/jsonview.js"></script>
+		<script type="text/javascript">
+			const data = JSON.parse(localStorage.getItem('progress'));
+			const tree = jsonview.create(data);
+			jsonview.render(tree, document.querySelector('.root'));
+		</script>
+	</body>
+</html>

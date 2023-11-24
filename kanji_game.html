@@ -55,6 +55,10 @@
 			resize: vertical;
 		}
 
+		#custom_menu {
+			display: block;
+		}
+
 		.container {
 			padding: 0;
 		}
@@ -274,9 +278,11 @@
 		<div class="language_section">
 			<h2 class="u-full-width">Japanese</h2>
 
-			<label for="kanji_input">Kanji input</label>
-			<div id="kanji_input" class="u-full-width"></div>
-
+			<div>
+				<label for="kanji_input">Kanji input</label>
+				<div id="kanji_input" class="u-full-width"></div>
+			</div>
+			
 			<label for="level_select">Select level</label>
 			<select id="level_select" class="u-full-width">
 				<option selected>1</option>
@@ -293,9 +299,17 @@
 				<option>12</option>
 				<option value="13">all</option>
 				<option value="0">custom</option>
-			</textarea>
+			</select>
 
-			<input hidden class="u-full-width" type="text" id="custom_list" lang="ja" pattern="[\p{Script=Han}]+" minlength="1" required>
+			<div id="custom_menu" class="u-full-width" style="display: none;">
+				<input type="text" id="custom_list" lang="ja" pattern="[\p{Script=Han}]+" minlength="1" required style="width: 100%;">
+
+				<div style="float: right; width: 25%;">
+					<input type="checkbox" id="strict" checked>
+					<label for="strict" style="display: inline; font-size: 1em;">only these characters</label>
+				</div>
+				
+			</div>
 
 			<input class="button-primary" id="submit" type="submit" value="Go!">
 			<input class="button-primary" id="import" type="submit" value="Import">
@@ -6229,26 +6243,30 @@
 	</script>
 	<script type="text/javascript">
 		const match_chars = /[ヶ\p{Script=Han}]/gu;
+		const katakana = /[ァアィイゥウェエォオカガキギクグケゲコゴサザシジスズセゼソゾタダチヂッツヅテデトドナニヌネノハバパヒビピフブプヘベペホボポマミムメモャヤュユョヨラリルレロヮワヰヱヲンヴヷヸヹヺ]/u;
 		const cartesian = ([...a]) => a.reduce((a, b) => a.flatMap(d => b.map(e => [d, e].flat())));
+		const object_map = (obj, fn) => Object.fromEntries(Object.entries(obj).map(([k, v], i) => [k, fn(v, k, i)]));
 
 		let thing;
 		let orig;
 		let weights;
 		let raw_text;
+		let custom_kanji;
 		let custom_level;
 		let quest_num = 0;
 		let stats = {};
 		let flag_incorrect = false;
 		let stored_sentence = 0;
+		let k_char_level;
 
 		$('select').on('change', function() {
 			if (this.value == 0) {
-				if ($('#custom_list').is(':hidden')) {
-					$('#custom_list').slideDown();
+				if ($('#custom_menu').is(':hidden')) {
+					$('#custom_menu').slideDown();
 				}
 			} else {
-				if ($('#custom_list').is(':hidden') == false) {
-					$('#custom_list').slideUp();
+				if ($('#custom_menu').is(':hidden') == false) {
+					$('#custom_menu').slideUp();
 				}
 			}
 		});
@@ -6372,8 +6390,11 @@
 		function handle_answer(value) {
 			let correct_answer;
 			let separated_answer;
+			let katakana_flag = false;
+			let optional_katakana = [];
 			let this_question = thing[quest_num];
 			let this_answer = cartesian(this_question[1]);
+
 
 			try {
 				correct_answer = this_answer.map((x) => x.join('').replaceAll(/[\p{Cf}]/gu, '').replaceAll(/[-:\.\(\)]/gu, ''));
@@ -6382,10 +6403,16 @@
 				correct_answer = this_answer.map((x) => x.replaceAll(/[\p{Cf}]/gu, '').replaceAll(/[-:\.\(\)]/gu, ''));
 				separated_answer = this_answer;
 			}
-			
 
-			if (correct_answer.includes(value)) {
-				success_furi([this_question[0], separated_answer[correct_answer.indexOf(value)]], quest_num);
+			for (var i = 0; i < correct_answer.length + 1; i++) {
+				if (katakana.test(correct_answer[i])) {
+					optional_katakana[i] = to_hiragana(correct_answer[i]);
+					katakana_flag = true;
+				}
+			}
+
+			if (found_answer() > -1) {
+				success_furi([this_question[0], separated_answer[found_answer()]], quest_num);
 				$('#search').val('');
 				quest_num++;
 
@@ -6399,6 +6426,115 @@
 				$('#expected-answer').text(correct_answer.join(' / '));
 				// console.log(correct_answer);
 			}
+
+
+			function found_answer() {
+				if (correct_answer.indexOf(value) > -1) {
+					return correct_answer.indexOf(value);
+				} else if (katakana_flag == true) {
+					if (optional_katakana.indexOf(value) > -1) {
+						return optional_katakana.indexOf(value);
+					} else {
+						return -1;
+					}
+				} else {
+					return -1;
+				}
+			}
+
+			function to_hiragana(ambig_text) {
+				const alph_dict = {
+					"ァ": "ぁ",
+					"ア": "あ",
+					"ィ": "ぃ",
+					"イ": "い",
+					"ゥ": "ぅ",
+					"ウ": "う",
+					"ェ": "ぇ",
+					"エ": "え",
+					"ォ": "ぉ",
+					"オ": "お",
+					"カ": "か",
+					"ガ": "が",
+					"キ": "き",
+					"ギ": "ぎ",
+					"ク": "く",
+					"グ": "ぐ",
+					"ケ": "け",
+					"ゲ": "げ",
+					"コ": "こ",
+					"ゴ": "ご",
+					"サ": "さ",
+					"ザ": "ざ",
+					"シ": "し",
+					"ジ": "じ",
+					"ス": "す",
+					"ズ": "ず",
+					"セ": "せ",
+					"ゼ": "ぜ",
+					"ソ": "そ",
+					"ゾ": "ぞ",
+					"タ": "た",
+					"ダ": "だ",
+					"チ": "ち",
+					"ヂ": "ぢ",
+					"ッ": "っ",
+					"ツ": "つ",
+					"ヅ": "づ",
+					"テ": "て",
+					"デ": "で",
+					"ト": "と",
+					"ド": "ど",
+					"ナ": "な",
+					"ニ": "に",
+					"ヌ": "ぬ",
+					"ネ": "ね",
+					"ノ": "の",
+					"ハ": "は",
+					"バ": "ば",
+					"パ": "ぱ",
+					"ヒ": "ひ",
+					"ビ": "び",
+					"ピ": "ぴ",
+					"フ": "ふ",
+					"ブ": "ぶ",
+					"プ": "ぷ",
+					"ヘ": "へ",
+					"ベ": "べ",
+					"ペ": "ぺ",
+					"ホ": "ほ",
+					"ボ": "ぼ",
+					"ポ": "ぽ",
+					"マ": "ま",
+					"ミ": "み",
+					"ム": "む",
+					"メ": "め",
+					"モ": "も",
+					"ャ": "ゃ",
+					"ヤ": "や",
+					"ュ": "ゅ",
+					"ユ": "ゆ",
+					"ョ": "ょ",
+					"ヨ": "よ",
+					"ラ": "ら",
+					"リ": "り",
+					"ル": "る",
+					"レ": "れ",
+					"ロ": "ろ",
+					"ヮ": "ゎ",
+					"ワ": "わ",
+					"ヰ": "ゐ",
+					"ヱ": "ゑ",
+					"ヲ": "を",
+					"ン": "ん",
+					"ヴ": "ゔ",
+					"ヷ": "わ゙",
+					"ヸ": "ゐ゙",
+					"ヹ": "ゑ゙",
+					"ヺ": "を゙",
+				};
+				return [...ambig_text].map((x) => (katakana.test(x) ? alph_dict[x] : x)).join('');
+			}
 		}
 
 		function k_level(chars) {
@@ -6406,8 +6542,8 @@
 			let curr_max = 0;
 
 			for (var i = 0; i < found.length; i++) {
-				if (char_level[found[i]] > curr_max) {
-					curr_max = char_level[found[i]];
+				if (k_char_level[found[i]] > curr_max) {
+					curr_max = k_char_level[found[i]];
 				}
 			}
 
@@ -6417,11 +6553,19 @@
 		function kanji_parse() {
 			var lines = editor.getValue().split('\n');
 			var sentences = [];
+			k_char_level = char_level;
 
 			if (Number($('#level_select').val()) == 0) {
-				let custom_kanji = $('#custom_list').val().split('');
-				custom_level = Math.max(...custom_kanji.map((kanji) => k_level(kanji)));
-				console.log(custom_level);
+				custom_kanji = $('#custom_list').val().split('');
+
+				if ($('#strict').is(":checked")) {
+					custom_level = -1;
+					k_char_level = object_map(char_level, (v, k) => (v, custom_kanji.includes(k) ? 1 : (["々", "〻", "〇"].includes(k) ? 0 : 10)));
+				} else {
+					custom_level = Math.max(...custom_kanji.map((kanji) => k_level(kanji)));
+					console.log(custom_level);
+				}
+
 
 				lines = lines.filter((line) => {
 					var custom_pattern = new RegExp('[' + $('#custom_list').val() + ']');
@@ -6492,7 +6636,11 @@
 			if (set_level == 13) {
 				appropriate_level = true;
 			} else if (set_level == 0) {
-				set_level = custom_level;
+				if (custom_level == -1) {
+					set_level = 1;
+				} else {
+					set_level = custom_level;
+				}
 			}
 
 			for (var i = 0; i < sentence.length; i++) {
@@ -6644,15 +6792,14 @@
 				let periods = (kana.match(/\./gu) || []).length; 
 				let colons = (kana.match(/:/gu) || []).length;
 
-				// console.log(kanji, kana);
-
 				if (kanji == '' || kana == '') {
 					return null;
 				}
 
 				if (colons == 0 && periods == 0) {
-					let phrase = `<span class="paired"><span class="furigana">${kana}</span><span style="display: block">${kanji}</span></span>`;
-					return [phrase, [kanji, kana]];
+					let phrase = `<span class="paired"><span class="furigana">${kana.replaceAll(/[:\-\.\(\)]/gu, '')}</span><span style="display: block">${kanji}</span></span>`;
+					// console.log([kanji, kana.replaceAll(/\([^)(]*\)/gu, '')]);
+					return [phrase, [kanji, kana.replaceAll(/\([^)(]*\)/gu, '')]];
 
 				} else if (colons + periods + 1 == kanji.length) {
 					if (colons == 0) {
@@ -6675,7 +6822,7 @@
 
 						for (var i = 0; i < compound_kanji.length; i++) {
 							phrase += split_ruby(compound_kanji[i], compound_kana[i])[0];
-							results.push([compound_kanji[i], compound_kana[i]]);
+							results.push([compound_kanji[i], compound_kana[i].replaceAll(/\([^)(]*\)/g, '')]);
 						}
 
 						return [phrase, results];
